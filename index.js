@@ -66,7 +66,6 @@ Output Example:
 
 Output Format:
 {"step" : "string" , "tool" : "string" , input : "string" , "content" : "string} 
-
 `;
 
 
@@ -79,7 +78,7 @@ try {
         }
    ];
 
-    const userQuery = 'What is in my package.json file?';
+    const userQuery = 'can you make frontend for my own chatgpt clone called Rookie GPT  , use reactjs and tailwindcss and keep it in another folder called frontend';
 
     messages.push({
         role : 'user',
@@ -132,3 +131,4 @@ try {
 
 
 init();
+ 
