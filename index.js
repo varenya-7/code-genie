@@ -5,69 +5,152 @@ const { error } = require('console');
 const { stderr, stdout } = require('process');
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 console.log('OPENAI_API_KEY:', OPENAI_API_KEY);
-
+const fs = require('fs').promises;
+const path = require('path');
+let currentWorkingDir = process.cwd(); // default directory
 const client = new OpenAI({
     apiKey: OPENAI_API_KEY,
 });
 
 const TOOLS_MAP = {
-    executeCommand: executeCommand
+    executeCommand : executeCommand,
 };
 
-function executeCommand(command){
-   return new Promise((resolve, reject) => {
-          exec(command , (error , stdout , stderr)=> {
-            if(error){
+
+// execute command v1
+
+// function executeCommand(command){
+//    return new Promise((resolve, reject) => {
+//           exec(command , (error , stdout , stderr)=> {
+//             if(error){
+//                 return reject(`Error executing command: ${error.message}`);
+//             }
+
+//             resolve(`stdout: ${stdout}\nstderr: ${stderr}`);
+//           });
+//    })
+// }
+
+
+
+// execute command v2
+
+async function executeCommand(command) {
+    const writeFileRegex = /^echo\s+"([\s\S]*)"\s+>\s+(.*)$/;
+
+    // Intercept echo-based file writes
+    const match = command.match(writeFileRegex);
+    if (match) {
+        const content = match[1]
+            .replace(/\\"/g, '"')  // unescape quotes
+            .replace(/\\n/g, '\n'); // support newline escaping if needed
+        const filePath = match[2].trim();
+
+        try {
+            const fullPath = path.resolve(filePath);
+            await fs.writeFile(fullPath, content, 'utf8');
+            return `File ${filePath} written successfully.`;
+        } catch (err) {
+            throw new Error(`Failed to write file ${filePath}: ${err.message}`);
+        }
+    }
+
+    // Otherwise, run as shell command
+    return new Promise((resolve, reject) => {
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
                 return reject(`Error executing command: ${error.message}`);
             }
-
             resolve(`stdout: ${stdout}\nstderr: ${stderr}`);
-          });
-   })
+        });
+    });
 }
 
 
-const SYSTEM_PROMPT = `You are a helpful AI Assistant who is designed to resolve user query. 
-                       You work on START ,THINK , OBSERVE and OUTPUT Mode.
 
-                       In the start phase , user gives a query to you.
-                       Then , you THINK how to resolve that query atleast 3-4 times and make sure that all is clear.
-                       If there is a need to call a tool , you call an ACTION event with tool and input parameters.
-                       If there is an action call , wait for the OBSERVE that is the output of the tool.
-                       Based on the OBSERVE from previous step , you either output or repeat the loop.
-Rules:
-- Always wait for the next step.
-- Always output a single step and wait for the next step.
-- Output must be strictly JSON.
-- Only call tool action from Available tools only.
-- Strictly follow the output format in JSON.
+// const SYSTEM_PROMPT = `You are a helpful AI Assistant who is designed to resolve user query. 
+//                        You work on START ,THINK , OBSERVE and OUTPUT Mode.
 
-Available tools:
-- executeCommand(command): string -> Executes a given linux command on user's device and returns the STDOUT and STDERR.
+//                        In the start phase , user gives a query to you.
+//                        Then , you THINK how to resolve that query atleast 3-4 times and make sure that all is clear.
+//                        If there is a need to call a tool , you call an ACTION event with tool and input parameters.
+//                        If there is an action call , wait for the OBSERVE that is the output of the tool.
+//                        Based on the OBSERVE from prev step , you either output or repeat the loop.
+// Rules:
+// - Always wait for the next step.
+// - Always output a single step and wait for the next step.
+// - Output must be strictly JSON.
+// - Only call tool action from Available tools only.
+// - Strictly follow the output format in JSON.
 
-Example:
-START : What is weather in Patiala?
-THINK : The user is asking about the weather in Patiala.
-THINK : From the available tools , I must call getWeatherInfo tool for patiala as input.
-ACTION : Call Tool getWeatherInfo(patiala).
-OBSERVE : 32 degree celsius.
-THINK : The output of getWeatherInfo for patiala is 32 degrees celsius.
-OUTPUT : Hey , The weather in patiala is 32 Degree C which is quite hot.
+// Available tools:
+// - executeCommand(command): string -> Executes a given linux command on user's device and returns the STDOUT and STDERR.
 
-Output Example:
-{"role" : "user" , "content" : "What is the weather in Patiala?"}
-{"step" : "think" , "content" : "The user is asking about the weather in Patiala."}
-{"step" : "think" , "content" : "From the available tools , I must call getWeatherInfo tool for patiala as input."}
-{"step" : "action" , "tool" : "getWeatherInfo" , "input" : "patiala"}
-{"step" : "observe" , "content" : "32 degree celsius."}
-{"step" : "think" , "content" : "The output of getWeatherInfo for patiala is 32 degrees celsius."}
-{"step" : "output" , "content" : "Hey , The weather in patiala is 32 Degree C which is quite hot."}
+// Example:
+// START : What is weather in Patiala?
+// THINK : The user is asking about the weather in Patiala.
+// THINK : From the available tools , I must call getWeatherInfo tool for patiala as input.
+// ACTION : Call Tool getWeatherInfo(patiala).
+// OBSERVE : 32 degree celsius.
+// THINK : The output of getWeatherInfo for patiala is 32 degrees celsius.
+// OUTPUT : Hey , The weather in patiala is 32 Degree C which is quite hot.
+
+// Output Example:
+// {"role" : "user" , "content" : "What is the weather in Patiala?"}
+// {"step" : "think" , "content" : "The user is asking about the weather in Patiala."}
+// {"step" : "think" , "content" : "From the available tools , I must call getWeatherInfo tool for patiala as input."}
+// {"step" : "action" , "tool" : "getWeatherInfo" , "input" : "patiala"}
+// {"step" : "observe" , "content" : "32 degree celsius."}
+// {"step" : "think" , "content" : "The output of getWeatherInfo for patiala is 32 degrees celsius."}
+// {"step" : "output" , "content" : "Hey , The weather in patiala is 32 Degree C which is quite hot."}
 
 
-Output Format:
-{"step" : "string" , "tool" : "string" , input : "string" , "content" : "string} 
-`;
+// Output Format:
+// {"step" : "string" , "tool" : "string" , input : "string" , "content" : "string} 
+// `;
 
+ const SYSTEM_PROMPT = `You are an helpful AI Assistant who is designed to reolve user query.
+                        You work on START ,THINK , OBSERVE and OUTPUT Mode.
+                        
+                        In the start phase , user gives a query to you.
+                        Then , you THINK how to resolve that query atleast 3-4 times and make sure that all is clear.
+                        If there is a need to call a tool , you call an ACTION event with tool and input parameters.
+                        If there is an action call , wait for the OBSERVE that is output of the tool.
+                        Based on the OBSERVE from the prev step , you either output or repeat the loop.
+
+                        Rules:
+                        - Always wait for the next step.
+                        - Always output a single step and wait for the next step.
+                        - Output must be strictly JSON.
+                        - Only call tool action from Available tools only.
+                        - Strictly follow the output format in JSON.
+
+
+                        Available Tools:
+                        - executeCommand(command) : string -> Executes a given linux command on user's device and returns the STDOUT and STDERR.
+
+                        EXAMPLE:
+                        START : What is weather in Patiala?
+                        THINK : The user is asking about the weather in Patiala.
+                        THINK : From the available tools , I must call getWeatherInfo tool for patiala as input.
+                        ACTION : Call Tool getWeatherInfo(patiala).
+                        OBSERVE: 32 Degree C.
+                        THINK : The output of getWeatherInfo for patiala is 32 degrees celsius.
+                        OUTPUT : Hey , The weather of Patiala is 32 Degree C which is quite hot.
+
+
+                        Output Example:
+                        {"role" : "user" , "content" : "What is the weather in Patiala?"}
+                        {"step" : "think" , "content" : "The user is asking for the weather in Patiala."}
+                        {"step" : "think" , "content" : "From the available tools , I must call getWeatherInfo tool for patiala as input."}
+                        {"step" : "action" , "tool" : "getWeatherInfo" , "input" : "patiala"}
+                        {"step" : "observe" , "content" : "32 Degree C."}
+                        {"step" : "think" , "content" : "The output of getWeatherInfo for patiala is 32 degrees celsius."}
+                        {"step" : "output" , "content" : "Hey , The weather in patiala is 32 Degree C which is quite hot."}
+
+                        Output Format:
+                        {"step" : "string" , "tool" : "string" , input : "string" , "content" : "string"}
+                        `;
 
 async function init(){
 try {
@@ -78,7 +161,7 @@ try {
         }
    ];
 
-    const userQuery = 'can you make frontend for my own chatgpt clone called Rookie GPT  , use reactjs and tailwindcss and keep it in another folder called frontend';
+    const userQuery = 'Prompt of your choice here';
 
     messages.push({
         role : 'user',
