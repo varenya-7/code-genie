@@ -38,5 +38,6 @@ It is an intelligent development environment powered by OpenAI and Node.js, desi
 git clone https://github.com/your-username/code-genie.git
 cd code-genie
 pnpm install
-pnpm dev 
-You're good to go , Happy Coding!
+pnpm dev
+``` 
+// You're good to go , Happy Coding!
