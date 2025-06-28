@@ -4,7 +4,7 @@ const path = require('path');
 
 
 async function executeCommand(command) {
-    const writeFileRegex = /^echo\s+"([\s\S]*)"\s+>\s+(.*)$/;
+     const writeFileRegex = /^echo\s+['"]([\s\S]*)['"]\s+>\s+(.*)$/;
      console.log("--------------IM HERE-----------------");
     // Intercept echo-based file writes
     const match = command.match(writeFileRegex);
