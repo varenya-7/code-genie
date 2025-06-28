@@ -1,14 +1,11 @@
 const { exec } = require('child_process');
-const { error } = require('console');
-const { stderr, stdout } = require('process');
 const fs = require('fs').promises;
 const path = require('path');
-let currentWorkingDir = process.cwd(); // default directory
 
 
 async function executeCommand(command) {
     const writeFileRegex = /^echo\s+"([\s\S]*)"\s+>\s+(.*)$/;
-
+     console.log("--------------IM HERE-----------------");
     // Intercept echo-based file writes
     const match = command.match(writeFileRegex);
     if (match) {

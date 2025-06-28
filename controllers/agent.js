@@ -1,8 +1,7 @@
 require('dotenv').config();
 const { OpenAI } = require('openai');
-
+const executeCommand = require('../utils/executeCommand');
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-console.log('OPENAI_API_KEY:', OPENAI_API_KEY);
 
 const client = new OpenAI({
     apiKey: OPENAI_API_KEY,
@@ -55,8 +54,12 @@ const TOOLS_MAP = {
                         {"step" : "string" , "tool" : "string" , input : "string" , "content" : "string"}
                         `;
 
-async function init(query){
+async function init(req, res) {
 try {
+    const { query } = req.body;
+    if (!query) {
+        return res.status(400).json({ error: 'Please enter appropriate prompt' });
+    }
     const messages = [
        {
             role : 'assistant',
@@ -90,6 +93,7 @@ try {
         //If the step is output , we are done with the process and we can output the final result.
          if(parsed_response.step && parsed_response.step === 'output') {
             console.log(`🤖:${parsed_response.content}`);
+            res.status(200).json({ result: parsed_response.content });
              break;
         }
 
@@ -111,6 +115,7 @@ try {
     }
 } catch (error) {
     console.error('Error:', error);
+    res.status(500).json({ error: 'An error occurred while processing your request.' });
 }
 }
 

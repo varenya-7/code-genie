@@ -1,7 +1,8 @@
 const {Router} = require('express');
 const router = Router();
-const {updateBandMembers ,getBandMembers} = require('../controllers/bandmember');
-router.post('/updatebandmember', updateBandMembers);
-router.get('/getbandmembers', getBandMembers);
+const { init } = require('../controllers/agent');
+
+router.post('/ask', init);
+
 
 module.exports = router;
