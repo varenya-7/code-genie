@@ -36,7 +36,8 @@ const TOOLS_MAP = {
 // execute command v2
 
 async function executeCommand(command) {
-    const writeFileRegex = /^echo\s+"([\s\S]*)"\s+>\s+(.*)$/;
+  const writeFileRegex = /^echo\s+['"]([\s\S]*)['"]\s+>\s+(.*)$/;
+
 
     // Intercept echo-based file writes
     const match = command.match(writeFileRegex);
@@ -161,7 +162,7 @@ try {
         }
    ];
 
-    const userQuery = 'Prompt of your choice here';
+    const userQuery = 'your prompt here';
 
     messages.push({
         role : 'user',
