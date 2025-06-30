@@ -56,11 +56,12 @@ const TOOLS_MAP = {
 
 async function init(req, res) {
 try {
-    const { query } = req.body;
-    if (!query) {
+    const { messages } = req.body;
+    const content = messages[messages.length - 1].content;
+    if (!content) {
         return res.status(400).json({ error: 'Please enter appropriate prompt' });
     }
-    const messages = [
+    const querymessages = [
        {
             role : 'assistant',
             content : SYSTEM_PROMPT
@@ -68,9 +69,9 @@ try {
    ];
 
 
-    messages.push({
+    querymessages.push({
         role : 'user',
-        content : query
+        content : content
     });
 
 
@@ -78,10 +79,10 @@ try {
         const response = await client.chat.completions.create({
             model : 'gpt-4o',
             response_format : {type: 'json_object'},
-            messages: messages,
+            messages: querymessages,
         });
 
-        messages.push({ role:'assistant' , content: response.choices[0].message.content });
+        querymessages.push({ role:'assistant' , content: response.choices[0].message.content });
 
         const parsed_response = JSON.parse(response.choices[0].message.content);
         
@@ -93,7 +94,7 @@ try {
         //If the step is output , we are done with the process and we can output the final result.
          if(parsed_response.step && parsed_response.step === 'output') {
             console.log(`🤖:${parsed_response.content}`);
-            res.status(200).json({ result: parsed_response.content });
+            res.status(200).json({ role : "assistant" , content: parsed_response.content });
              break;
         }
 
@@ -107,7 +108,7 @@ try {
 
            console.log(`🔧:Calling tool ${tool} with input ${input} with value => ${value}`);
 
-            messages.push({"role" : 'assistant' , "content":  JSON.stringify({"step": "observe" , "content": value}) 
+            querymessages.push({"role" : 'assistant' , "content":  JSON.stringify({"step": "observe" , "content": value}) 
             });
 
             continue;
