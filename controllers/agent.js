@@ -54,47 +54,109 @@ const TOOLS_MAP = {
                         {"step" : "string" , "tool" : "string" , input : "string" , "content" : "string"}
                         `;
 
-async function init(req, res) {
-try {
-    const { messages } = req.body;
+// async function init(req, res) {
+// try {
+//     const { messages } = req.body;
+//     const content = messages[messages.length - 1].content;
+//     if (!content) {
+//         return res.status(400).json({ error: 'Please enter appropriate prompt' });
+//     }
+//     const querymessages = [
+//        {
+//             role : 'assistant',
+//             content : SYSTEM_PROMPT
+//         }
+//    ];
+
+
+//     querymessages.push({
+//         role : 'user',
+//         content : content
+//     });
+
+
+//     while(true) {
+//         const response = await client.chat.completions.create({
+//             model : 'gpt-4o',
+//             response_format : {type: 'json_object'},
+//             messages: querymessages,
+//         });
+
+//         querymessages.push({ role:'assistant' , content: response.choices[0].message.content });
+
+//         const parsed_response = JSON.parse(response.choices[0].message.content);
+        
+//         //If the step is start , we are starting the process and we can output the first step.
+//         if(parsed_response.step && parsed_response.step === 'think') {
+//             console.log(`🧠:${parsed_response.content}`);
+//              continue;
+//         }
+//         //If the step is output , we are done with the process and we can output the final result.
+//          if(parsed_response.step && parsed_response.step === 'output') {
+//             console.log(`🤖:${parsed_response.content}`);
+//             res.status(200).json({ role : "assistant" , content: parsed_response.content });
+//              break;
+//         }
+
+//         //We are basically fetching the tool and input from the parsed response and then we'll call the tool from the toolsmap by passing the input.
+//         if(parsed_response.step && parsed_response.step === 'action') 
+//         {
+//            const tool = parsed_response.tool; 
+//            const input = parsed_response.input;
+
+//            const value = await TOOLS_MAP[tool](input);
+
+//            console.log(`🔧:Calling tool ${tool} with input ${input} with value => ${value}`);
+
+//             querymessages.push({"role" : 'assistant' , "content":  JSON.stringify({"step": "observe" , "content": value}) 
+//             });
+
+//             continue;
+//         } 
+//     }
+// } catch (error) {
+//     console.error('Error:', error);
+//     res.status(500).json({ error: 'An error occurred while processing your request.' });
+// }
+// }
+
+async function init (ws , data){
+    const { messages } = data;
     const content = messages[messages.length - 1].content;
     if (!content) {
-        return res.status(400).json({ error: 'Please enter appropriate prompt' });
+        ws.send(JSON.stringify({ error: 'Please enter appropriate prompt' }));
+        return;
     }
-    const querymessages = [
-       {
-            role : 'assistant',
-            content : SYSTEM_PROMPT
-        }
-   ];
+      const querymessages = [
+    { role: 'assistant', content: SYSTEM_PROMPT },
+    { role: 'user', content },
+  ];
 
-
-    querymessages.push({
-        role : 'user',
-        content : content
+   while(true){
+    const response = await client.chat.completions.create({
+        model: 'gpt-4o',
+        response_format: { type: 'json_object' },
+        messages: querymessages,
     });
 
+    const messageContent = response.choices[0].message.content;
+    querymessages.push({ role: 'assistant', content: messageContent });
+  
+      const parsed_response = JSON.parse(messageContent);
 
-    while(true) {
-        const response = await client.chat.completions.create({
-            model : 'gpt-4o',
-            response_format : {type: 'json_object'},
-            messages: querymessages,
-        });
-
-        querymessages.push({ role:'assistant' , content: response.choices[0].message.content });
-
-        const parsed_response = JSON.parse(response.choices[0].message.content);
-        
         //If the step is start , we are starting the process and we can output the first step.
         if(parsed_response.step && parsed_response.step === 'think') {
             console.log(`🧠:${parsed_response.content}`);
+            ws.send(JSON.stringify({ role: "assistant", content: `🧠: ${parsed.content}` }));
+
              continue;
         }
         //If the step is output , we are done with the process and we can output the final result.
          if(parsed_response.step && parsed_response.step === 'output') {
             console.log(`🤖:${parsed_response.content}`);
-            res.status(200).json({ role : "assistant" , content: parsed_response.content });
+            // res.status(200).json({ role : "assistant" , content: parsed_response.content });
+            ws.send(JSON.stringify({ role: "assistant", content: `🤖: ${parsed_response.content}` }));
+
              break;
         }
 
@@ -107,20 +169,20 @@ try {
            const value = await TOOLS_MAP[tool](input);
 
            console.log(`🔧:Calling tool ${tool} with input ${input} with value => ${value}`);
+            ws.send(JSON.stringify({ role: "assistant", content: `🔧: Calling ${tool} with input ${input} => ${value}` }));
 
             querymessages.push({"role" : 'assistant' , "content":  JSON.stringify({"step": "observe" , "content": value}) 
             });
 
             continue;
         } 
-    }
-} catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'An error occurred while processing your request.' });
-}
-}
 
 
+
+   }
+
+
+}
 module.exports = {
     init,   
 }
