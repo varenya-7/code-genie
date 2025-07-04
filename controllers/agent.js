@@ -121,6 +121,7 @@ const TOOLS_MAP = {
 // }
 
 async function init (ws , data){
+    console.log('INIT BEING CALLED');
     const { messages } = data;
     const content = messages[messages.length - 1].content;
     if (!content) {
@@ -147,7 +148,7 @@ async function init (ws , data){
         //If the step is start , we are starting the process and we can output the first step.
         if(parsed_response.step && parsed_response.step === 'think') {
             console.log(`🧠:${parsed_response.content}`);
-            ws.send(JSON.stringify({ role: "assistant", content: `🧠: ${parsed.content}` }));
+            ws.send(JSON.stringify({ role: "assistant", content: `🧠: ${parsed_response.content}` }));
 
              continue;
         }
@@ -183,6 +184,4 @@ async function init (ws , data){
 
 
 }
-module.exports = {
-    init,   
-}
+module.exports = {init};

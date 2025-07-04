@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 // const runAgent = require('./agent'); // import your logic here
 const WebSocket = require('ws');
-const { agent } = require('./controllers/agent');
+const  agent  = require('./controllers/agent');
 const http = require('http');
 const app = express();
 app.use(cors());
