@@ -148,15 +148,14 @@ async function init (ws , data){
         //If the step is start , we are starting the process and we can output the first step.
         if(parsed_response.step && parsed_response.step === 'think') {
             console.log(`🧠:${parsed_response.content}`);
-            ws.send(JSON.stringify({ role: "assistant", content: `🧠: ${parsed_response.content}` }));
-
-             continue;
+            ws.send(JSON.stringify({ role: "assistant", content: `🧠: ${parsed_response.content}` , step : 'think' }));
+           continue;
         }
         //If the step is output , we are done with the process and we can output the final result.
          if(parsed_response.step && parsed_response.step === 'output') {
             console.log(`🤖:${parsed_response.content}`);
             // res.status(200).json({ role : "assistant" , content: parsed_response.content });
-            ws.send(JSON.stringify({ role: "assistant", content: `🤖: ${parsed_response.content}` }));
+            ws.send(JSON.stringify({ role: "assistant", content: `🤖: ${parsed_response.content}`  , step : 'output'}));
 
              break;
         }
@@ -170,7 +169,7 @@ async function init (ws , data){
            const value = await TOOLS_MAP[tool](input);
 
            console.log(`🔧:Calling tool ${tool} with input ${input} with value => ${value}`);
-            ws.send(JSON.stringify({ role: "assistant", content: `🔧: Calling ${tool} with input ${input} => ${value}` }));
+            ws.send(JSON.stringify({ role: "assistant", content: `🔧: Calling ${tool} with input ${input} => ${value}` , step : 'action'}));
 
             querymessages.push({"role" : 'assistant' , "content":  JSON.stringify({"step": "observe" , "content": value}) 
             });
